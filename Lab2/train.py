@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm
 import os
+import argparse
 
 from model import SnoutNet, init_weights
 from dataset import PetNoseDataset, get_transforms
@@ -124,6 +125,7 @@ def plot_losses(train_losses, test_losses, save_path="training_loss.png"):
 
 
 def train_snoutnet(num_epochs=50, batch_size=32, learning_rate=0.001, 
+                   augmentation=False,
                    save_model_path="snoutnet.pth", save_plot_path="training_loss.png"):
     """
     Main training function for SnoutNet.
@@ -132,6 +134,7 @@ def train_snoutnet(num_epochs=50, batch_size=32, learning_rate=0.001,
         num_epochs: Number of training epochs
         batch_size: Batch size for training
         learning_rate: Learning rate for optimizer
+        augmentation: Whether to use data augmentation
         save_model_path: Path to save trained model
         save_plot_path: Path to save loss plot
     """
@@ -160,8 +163,12 @@ def train_snoutnet(num_epochs=50, batch_size=32, learning_rate=0.001,
     print("Loading Datasets...")
     print("-" * 60)
     
-    # Get transforms (no augmentation as per requirements)
-    transform = get_transforms(resize_size=227, augmentation=False)
+    # Get transforms
+    transform = get_transforms(resize_size=227, augmentation=augmentation)
+    if augmentation:
+        print("Using data augmentation: ColorJitter, RandomRotation, RandomHorizontalFlip")
+    else:
+        print("Using basic transforms (no augmentation)")
     
     # Create datasets
     train_dataset = PetNoseDataset(images_dir, train_labels, transform=transform)
@@ -254,17 +261,53 @@ def train_snoutnet(num_epochs=50, batch_size=32, learning_rate=0.001,
     return model, train_losses, test_losses
 
 
-if __name__ == "__main__":
+def main():
+    """Main function to handle command line arguments and start training."""
+    parser = argparse.ArgumentParser(description='Train SnoutNet model for pet nose localization')
+    parser.add_argument('-a', '--augment', action='store_true',
+                       help='Enable data augmentation (ColorJitter, RandomRotation, RandomHorizontalFlip)')
+    parser.add_argument('-e', '--epochs', type=int, default=50,
+                       help='Number of training epochs (default: 50)')
+    parser.add_argument('-b', '--batch-size', type=int, default=32,
+                       help='Batch size for training (default: 32)')
+    parser.add_argument('--lr', type=float, default=0.001,
+                       help='Learning rate (default: 0.001)')
+    
+    args = parser.parse_args()
+    
+    # Set filenames based on augmentation flag
+    suffix = "_aug" if args.augment else ""
+    model_path = f"snoutnet{suffix}.pth"
+    best_model_path = f"best_snoutnet{suffix}.pth"
+    plot_path = f"training_loss{suffix}.png"
+    
+    print("\n" + "=" * 60)
+    print("Training Configuration:")
+    print("=" * 60)
+    print(f"Augmentation: {'Enabled' if args.augment else 'Disabled'}")
+    print(f"Epochs: {args.epochs}")
+    print(f"Batch size: {args.batch_size}")
+    print(f"Learning rate: {args.lr}")
+    print(f"Output files:")
+    print(f"  - Final model: {model_path}")
+    print(f"  - Best model: {best_model_path}")
+    print(f"  - Loss plot: {plot_path}")
+    
     # Train the model
     model, train_losses, test_losses = train_snoutnet(
-        num_epochs=50,
-        batch_size=32,
-        learning_rate=0.001,
-        save_model_path="snoutnet.pth",
-        save_plot_path="training_loss.png"
+        num_epochs=args.epochs,
+        batch_size=args.batch_size,
+        learning_rate=args.lr,
+        augmentation=args.augment,
+        save_model_path=model_path,
+        save_plot_path=plot_path
     )
     
     print("\n" + "=" * 60)
     print("Training script finished successfully!")
     print("=" * 60)
+
+
+if __name__ == "__main__":
+    main()
 

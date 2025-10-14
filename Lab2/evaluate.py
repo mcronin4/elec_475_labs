@@ -4,19 +4,21 @@ import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm
 import os
+import argparse
 
 from model import SnoutNet
 from dataset import PetNoseDataset, get_transforms
 
 
-def evaluate_model(model_path="best_snoutnet.pth", batch_size=32, visualize=True):
+def evaluate_model(model_path, batch_size=32, visualize=True, save_path="evaluation_samples.png"):
     """
     Evaluate the trained SnoutNet model on the test dataset.
     
     Args:
-        model_path: Path to saved model weights
+        model_path: Path to saved model weights (required)
         batch_size: Batch size for evaluation
         visualize: Whether to create visualizations
+        save_path: Path to save visualization output
         
     Returns:
         dict: Dictionary containing statistics and results
@@ -159,7 +161,7 @@ def evaluate_model(model_path="best_snoutnet.pth", batch_size=32, visualize=True
         visualize_predictions(test_dataset, all_predictions.numpy(), 
                             all_ground_truth.numpy(), distances_np,
                             mean_distance,
-                            save_path="evaluation_samples.png")
+                            save_path=save_path)
     
     print("\n" + "=" * 60)
     print("Evaluation Complete!")
@@ -262,15 +264,44 @@ def visualize_predictions(dataset, predictions, ground_truth, distances, mean_di
     plt.close()
 
 
-if __name__ == "__main__":
+def main():
+    """Main function to handle command line arguments and start evaluation."""
+    parser = argparse.ArgumentParser(description='Evaluate SnoutNet model on test dataset')
+    parser.add_argument('-m', '--model', type=str, required=True,
+                       help='Path to model file (e.g., best_snoutnet.pth or best_snoutnet_aug.pth)')
+    parser.add_argument('-b', '--batch-size', type=int, default=32,
+                       help='Batch size for evaluation (default: 32)')
+    
+    args = parser.parse_args()
+    
+    # Extract suffix from model filename for output files
+    # e.g., "best_snoutnet_aug.pth" -> "_aug"
+    model_basename = os.path.basename(args.model)
+    if "_aug" in model_basename:
+        output_path = "evaluation_samples_aug.png"
+    else:
+        output_path = "evaluation_samples.png"
+    
+    print("\n" + "=" * 60)
+    print("Evaluation Configuration:")
+    print("=" * 60)
+    print(f"Model: {args.model}")
+    print(f"Batch size: {args.batch_size}")
+    print(f"Output file: {output_path}")
+    
     # Evaluate the trained model
     results = evaluate_model(
-        model_path="best_snoutnet.pth",
-        batch_size=32,
-        visualize=True
+        model_path=args.model,
+        batch_size=args.batch_size,
+        visualize=True,
+        save_path=output_path
     )
     
     print("\n" + "=" * 60)
     print("Evaluation script finished successfully!")
     print("=" * 60)
+
+
+if __name__ == "__main__":
+    main()
 
