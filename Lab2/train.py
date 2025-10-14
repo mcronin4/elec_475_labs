@@ -139,11 +139,17 @@ def train_snoutnet(num_epochs=50, batch_size=32, learning_rate=0.001,
     print("SnoutNet Training Script")
     print("=" * 60)
     
-    # Set device
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"\nUsing device: {device}")
+    # Set device - support CUDA, MPS (Apple Metal), and CPU
     if torch.cuda.is_available():
+        device = torch.device("cuda")
+        print(f"\nUsing device: CUDA GPU")
         print(f"GPU: {torch.cuda.get_device_name(0)}")
+    elif torch.backends.mps.is_available():
+        device = torch.device("mps")
+        print(f"\nUsing device: Apple Metal (MPS)")
+    else:
+        device = torch.device("cpu")
+        print(f"\nUsing device: CPU")
     
     # Dataset paths
     images_dir = "oxford-iiit-pet-noses/images-original/images"
