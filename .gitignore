@@ -1,2 +1,7 @@
 __pycache__/
 oxford-iiit-pet-noses/
+images-original/
+test_noses.txt
+train_noses.txt
+venv/
+.DS_Store
