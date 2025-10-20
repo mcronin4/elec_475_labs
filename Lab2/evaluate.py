@@ -7,12 +7,35 @@ import os
 import argparse
 
 from model import SnoutNet
+from model_alexnet import AlexNetNose
+from model_vgg16 import VGG16Nose
 from dataset import PetNoseDataset, get_transforms
 
 
-def evaluate_model(model_path, batch_size=32, visualize=True, save_path="evaluation_samples.png"):
+def detect_model_type(model_path):
     """
-    Evaluate the trained SnoutNet model on the test dataset.
+    Detect model type from filename.
+    
+    Args:
+        model_path: Path to model file
+        
+    Returns:
+        str: Model type ('alexnet', 'vgg16', or 'snoutnet')
+    """
+    model_path_lower = model_path.lower()
+    
+    if 'alexnet' in model_path_lower:
+        return 'alexnet'
+    elif 'vgg16' in model_path_lower or 'vgg' in model_path_lower:
+        return 'vgg16'
+    else:
+        return 'snoutnet'
+
+
+def evaluate_model(model_path, batch_size=32, visualize=True, save_path="evaluation_samples/evaluation_samples.png"):
+    """
+    Evaluate the trained model on the test dataset.
+    Supports SnoutNet, AlexNet, and VGG16 architectures.
     
     Args:
         model_path: Path to saved model weights (required)
@@ -24,7 +47,7 @@ def evaluate_model(model_path, batch_size=32, visualize=True, save_path="evaluat
         dict: Dictionary containing statistics and results
     """
     print("=" * 60)
-    print("SnoutNet Model Evaluation")
+    print("Model Evaluation")
     print("=" * 60)
     
     # Set device - support CUDA, MPS (Apple Metal), and CPU
@@ -43,8 +66,17 @@ def evaluate_model(model_path, batch_size=32, visualize=True, save_path="evaluat
     print("Loading Model...")
     print("-" * 60)
     
-    # Initialize model
-    model = SnoutNet()
+    # Detect model type from filename
+    model_type = detect_model_type(model_path)
+    print(f"Detected model type: {model_type.upper()}")
+    
+    # Initialize appropriate model architecture
+    if model_type == 'alexnet':
+        model = AlexNetNose(pretrained=False)  # Don't need pretrained weights, loading from file
+    elif model_type == 'vgg16':
+        model = VGG16Nose(pretrained=False)  # Don't need pretrained weights, loading from file
+    else:  # snoutnet
+        model = SnoutNet()
     
     # Load trained weights
     if not os.path.exists(model_path):
@@ -171,7 +203,7 @@ def evaluate_model(model_path, batch_size=32, visualize=True, save_path="evaluat
 
 
 def visualize_predictions(dataset, predictions, ground_truth, distances, mean_distance,
-                         num_samples=9, save_path="evaluation_samples.png"):
+                         num_samples=9, save_path="evaluation_samples/evaluation_samples.png"):
     """
     Visualize sample predictions with best, worst, and average cases.
     
@@ -266,22 +298,33 @@ def visualize_predictions(dataset, predictions, ground_truth, distances, mean_di
 
 def main():
     """Main function to handle command line arguments and start evaluation."""
-    parser = argparse.ArgumentParser(description='Evaluate SnoutNet model on test dataset')
+    parser = argparse.ArgumentParser(description='Evaluate model on test dataset (SnoutNet, AlexNet, or VGG16)')
     parser.add_argument('-m', '--model', type=str, required=True,
-                       help='Path to model file (e.g., best_snoutnet.pth or best_snoutnet_aug.pth)')
+                       help='Path to model file (e.g., best_snoutnet.pth, best_alexnet_aug.pth, best_vgg16.pth)')
     parser.add_argument('-b', '--batch-size', type=int, default=32,
                        help='Batch size for evaluation (default: 32)')
     
     args = parser.parse_args()
     
-    # Extract suffix from model filename for output files
-    # e.g., "best_snoutnet_aug.pth" -> "_aug"
+    # Extract model type and suffix from model filename for output files
+    # e.g., "best_alexnet_aug.pth" -> "evaluation_samples_alexnet_aug.png"
     model_basename = os.path.basename(args.model)
-    if "_aug" in model_basename:
-        output_path = "evaluation_samples_aug.png"
-    else:
-        output_path = "evaluation_samples.png"
+    model_type = detect_model_type(args.model)
     
+    # Build output filename
+    if model_type == 'snoutnet':
+        # For SnoutNet, keep original naming convention
+        if "_aug" in model_basename:
+            output_path = "evaluation_samples_aug.png"
+        else:
+            output_path = "evaluation_samples.png"
+    else:
+        # For AlexNet and VGG16, include model type in filename
+        suffix = "_aug" if "_aug" in model_basename else ""
+        output_path = f"evaluation_samples_{model_type}{suffix}.png"
+    
+    output_path = "evaluation_samples/" + output_path
+
     print("\n" + "=" * 60)
     print("Evaluation Configuration:")
     print("=" * 60)

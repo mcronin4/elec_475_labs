@@ -97,7 +97,7 @@ def validate(model, test_loader, criterion, device):
     return avg_loss
 
 
-def plot_losses(train_losses, test_losses, save_path="training_loss.png"):
+def plot_losses(train_losses, test_losses, save_path="loss_plots/training_loss.png"):
     """
     Plot training and validation losses.
     
@@ -126,7 +126,7 @@ def plot_losses(train_losses, test_losses, save_path="training_loss.png"):
 
 def train_snoutnet(num_epochs=50, batch_size=32, learning_rate=0.001, 
                    augmentation=False,
-                   save_model_path="snoutnet.pth", save_plot_path="training_loss.png"):
+                   save_model_path="snoutnet.pth", save_plot_path="loss_plots/training_loss.png"):
     """
     Main training function for SnoutNet.
     
@@ -164,15 +164,16 @@ def train_snoutnet(num_epochs=50, batch_size=32, learning_rate=0.001,
     print("-" * 60)
     
     # Get transforms
-    transform = get_transforms(resize_size=227, augmentation=augmentation)
+    train_transform = get_transforms(resize_size=227, augmentation=augmentation)
+    test_transform = get_transforms(resize_size=227, augmentation=False) # no augmentation for test set
     if augmentation:
         print("Using data augmentation: ColorJitter, RandomRotation, RandomHorizontalFlip")
     else:
         print("Using basic transforms (no augmentation)")
     
     # Create datasets
-    train_dataset = PetNoseDataset(images_dir, train_labels, transform=transform)
-    test_dataset = PetNoseDataset(images_dir, test_labels, transform=transform)
+    train_dataset = PetNoseDataset(images_dir, train_labels, transform=train_transform)
+    test_dataset = PetNoseDataset(images_dir, test_labels, transform=test_transform)
     
     print(f"Training samples: {len(train_dataset)}")
     print(f"Test samples: {len(test_dataset)}")
@@ -279,7 +280,7 @@ def main():
     suffix = "_aug" if args.augment else ""
     model_path = f"snoutnet{suffix}.pth"
     best_model_path = f"best_snoutnet{suffix}.pth"
-    plot_path = f"training_loss{suffix}.png"
+    plot_path = f"loss_plots/training_loss{suffix}.png"
     
     print("\n" + "=" * 60)
     print("Training Configuration:")
