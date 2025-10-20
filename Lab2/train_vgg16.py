@@ -216,7 +216,9 @@ def train_vgg16(num_epochs=50, batch_size=32, learning_rate=0.001,
     
     # Optimizer
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-    print(f"Optimizer: Adam (lr={learning_rate})")
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', 
+                                                   factor=0.5, patience=5, min_lr=1e-6)
+    print(f"Optimizer: Adam (lr={learning_rate}) with ReduceLROnPlateau scheduler (factor=0.5, patience=5)")
     print(f"Training strategy: Full fine-tuning (all layers trainable)")
     
     print("\n" + "-" * 60)
@@ -243,9 +245,14 @@ def train_vgg16(num_epochs=50, batch_size=32, learning_rate=0.001,
         train_losses.append(train_loss)
         test_losses.append(test_loss)
         
+        # Update learning rate based on validation loss
+        scheduler.step(test_loss)
+        current_lr = optimizer.param_groups[0]['lr']
+
         # Print statistics
         print(f"  Train Loss: {train_loss:.4f}")
         print(f"  Test Loss:  {test_loss:.4f}")
+        print(f"  Learning Rate: {current_lr:.6f}")
         
         # Track best model
         if test_loss < best_test_loss:
@@ -282,8 +289,8 @@ def main():
                        help='Number of training epochs (default: 50)')
     parser.add_argument('-b', '--batch-size', type=int, default=32,
                        help='Batch size for training (default: 32)')
-    parser.add_argument('--lr', type=float, default=0.001,
-                       help='Learning rate (default: 0.001)')
+    parser.add_argument('--lr', type=float, default=0.0001,
+                       help='Learning rate (default: 0.0001)')
     
     args = parser.parse_args()
     
