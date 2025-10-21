@@ -137,7 +137,7 @@ def plot_losses(train_losses, test_losses, save_path="loss_plots/training_loss_v
 
 def train_vgg16(num_epochs=50, batch_size=32, learning_rate=0.0001, 
                  color_aug=False, blur_aug=False,
-                 save_model_path="vgg16.pth", save_plot_path="loss_plots/training_loss_vgg16.png"):
+                 save_model_path="model_weights/vgg16/vgg16.pth", best_model_path="model_weights/vgg16/best_vgg16.pth", save_plot_path="loss_plots/training_loss_vgg16.png"):
     """
     Main training function for VGG16.
     
@@ -148,6 +148,7 @@ def train_vgg16(num_epochs=50, batch_size=32, learning_rate=0.0001,
         color_aug: Whether to use color augmentation (ColorJitter)
         blur_aug: Whether to use blur augmentation (GaussianBlur)
         save_model_path: Path to save trained model
+        best_model_path: Path to save best model
         save_plot_path: Path to save loss plot
     """
     print("=" * 60)
@@ -268,7 +269,7 @@ def train_vgg16(num_epochs=50, batch_size=32, learning_rate=0.0001,
             best_test_loss = test_loss
             best_epoch = epoch
             # Save best model
-            torch.save(model.state_dict(), f"best_{save_model_path}")
+            torch.save(model.state_dict(), best_model_path)
             print(f"  ✓ New best model saved! (Test Loss: {best_test_loss:.4f})")
     
     print("\n" + "=" * 60)
@@ -281,7 +282,7 @@ def train_vgg16(num_epochs=50, batch_size=32, learning_rate=0.0001,
     # Save final model
     torch.save(model.state_dict(), save_model_path)
     print(f"\nFinal model saved to: {save_model_path}")
-    print(f"Best model saved to: best_{save_model_path}")
+    print(f"Best model saved to: {best_model_path}")
     
     # Plot losses
     plot_losses(train_losses, test_losses, save_path=save_plot_path)
@@ -314,8 +315,8 @@ def main():
     elif args.blur_aug:
         suffix = "_aug_blur"
     
-    model_path = f"vgg16{suffix}.pth"
-    best_model_path = f"best_vgg16{suffix}.pth"
+    model_path = f"model_weights/vgg16/vgg16{suffix}.pth"
+    best_model_path = f"model_weights/vgg16/best_vgg16{suffix}.pth"
     plot_path = f"loss_plots/training_loss_vgg16{suffix}.png"
     
     print("\n" + "=" * 60)
@@ -344,6 +345,7 @@ def main():
         color_aug=args.color_aug,
         blur_aug=args.blur_aug,
         save_model_path=model_path,
+        best_model_path=best_model_path,
         save_plot_path=plot_path
     )
     

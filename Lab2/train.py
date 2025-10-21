@@ -126,7 +126,9 @@ def plot_losses(train_losses, test_losses, save_path="loss_plots/training_loss.p
 
 def train_snoutnet(num_epochs=50, batch_size=32, learning_rate=0.001, 
                    color_aug=False, blur_aug=False,
-                   save_model_path="snoutnet.pth", save_plot_path="loss_plots/training_loss.png"):
+                   save_model_path="model_weights/snoutnet/snoutnet.pth", 
+                   best_model_path="model_weights/snoutnet/best_snoutnet.pth", 
+                   save_plot_path="loss_plots/training_loss.png"):
     """
     Main training function for SnoutNet.
     
@@ -250,7 +252,7 @@ def train_snoutnet(num_epochs=50, batch_size=32, learning_rate=0.001,
             best_test_loss = test_loss
             best_epoch = epoch
             # Save best model
-            torch.save(model.state_dict(), f"best_{save_model_path}")
+            torch.save(model.state_dict(), best_model_path)
             print(f"  ✓ New best model saved! (Test Loss: {best_test_loss:.4f})")
     
     print("\n" + "=" * 60)
@@ -296,8 +298,8 @@ def main():
     elif args.blur_aug:
         suffix = "_aug_blur"
     
-    model_path = f"snoutnet{suffix}.pth"
-    best_model_path = f"best_snoutnet{suffix}.pth"
+    model_path = f"model_weights/snoutnet/snoutnet{suffix}.pth"
+    best_model_path = f"model_weights/snoutnet/best_snoutnet{suffix}.pth"
     plot_path = f"loss_plots/training_loss{suffix}.png"
     
     print("\n" + "=" * 60)
@@ -325,6 +327,7 @@ def main():
         color_aug=args.color_aug,
         blur_aug=args.blur_aug,
         save_model_path=model_path,
+        best_model_path=best_model_path,
         save_plot_path=plot_path
     )
     
