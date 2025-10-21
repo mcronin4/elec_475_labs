@@ -99,7 +99,7 @@ def evaluate_model(model_path, batch_size=32, visualize=True, save_path="evaluat
     test_labels = "oxford-iiit-pet-noses/test_noses.txt"
     
     # Get transforms (no augmentation)
-    transform = get_transforms(resize_size=227, augmentation=False)
+    transform = get_transforms(resize_size=227, color_aug=False, blur_aug=False)
     
     # Create test dataset
     test_dataset = PetNoseDataset(images_dir, test_labels, transform=transform)
@@ -311,17 +311,9 @@ def main():
     model_basename = os.path.basename(args.model)
     model_type = detect_model_type(args.model)
     
-    # Build output filename
-    if model_type == 'snoutnet':
-        # For SnoutNet, keep original naming convention
-        if "_aug" in model_basename:
-            output_path = "evaluation_samples_aug.png"
-        else:
-            output_path = "evaluation_samples.png"
-    else:
-        # For AlexNet and VGG16, include model type in filename
-        suffix = "_aug" if "_aug" in model_basename else ""
-        output_path = f"evaluation_samples_{model_type}{suffix}.png"
+    # include model type in filename
+    suffix = "_aug" if "_aug" in model_basename else ""
+    output_path = f"evaluation_samples_{model_type}{suffix}.png"
     
     output_path = "evaluation_samples/" + output_path
 

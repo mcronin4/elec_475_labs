@@ -125,39 +125,42 @@ class PetNoseDataset(Dataset):
         }
 
 
-def get_transforms(resize_size=227, augmentation=False):
+def get_transforms(resize_size=227, color_aug=False, blur_aug=False):
     """
     Get transform pipelines for training and testing.
     
     Args:
         resize_size (int): Target size for image resizing (227 for SnoutNet)
-        augmentation (bool): Whether to apply data augmentation
+        color_aug (bool): Whether to apply color-based augmentation (ColorJitter)
+        blur_aug (bool): Whether to apply blur augmentation (GaussianBlur)
         
     Returns:
         transforms.Compose: Transform pipeline
     """
-    if augmentation:
-        # Training transforms with augmentation
-        transform = transforms.Compose([
-            transforms.Resize((resize_size, resize_size)),
-            transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
-            transforms.RandomRotation(degrees=10),
-            transforms.RandomHorizontalFlip(p=0.5),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-        ])
-    else:
-        # Basic transforms without augmentation
-        transform = transforms.Compose([
-            transforms.Resize((resize_size, resize_size)),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-        ])
+    transform_list = [transforms.Resize((resize_size, resize_size))]
     
-    return transform
+    # Add color augmentation if requested
+    if color_aug:
+        transform_list.append(
+            transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.1)
+        )
+    
+    # Add blur augmentation if requested
+    if blur_aug:
+        transform_list.append(
+            transforms.GaussianBlur(kernel_size=5, sigma=(0.1, 2.0))
+        )
+    
+    # Add standard preprocessing
+    transform_list.extend([
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    ])
+    
+    return transforms.Compose(transform_list)
 
 
-def reality_check_dataset(dataset, num_samples=5, save_plots=True):
+def reality_check_dataset(dataset, save_path="reality_check_samples.png", num_samples=5, save_plots=True):
     """
     Reality check routine to verify dataset loading.
     
@@ -197,7 +200,7 @@ def reality_check_dataset(dataset, num_samples=5, save_plots=True):
     
     # Visualize samples
     if save_plots:
-        visualize_samples(dataset, num_samples=num_samples)
+        visualize_samples(dataset, num_samples=num_samples, save_path=save_path)
 
 
 def visualize_samples(dataset, num_samples=5, save_path="reality_check_samples.png"):
@@ -251,7 +254,7 @@ if __name__ == "__main__":
     
     # Test basic transforms
     print("\n=== Testing Basic Transforms ===")
-    basic_transform = get_transforms(augmentation=False)
+    basic_transform = get_transforms(color_aug=False, blur_aug=False)
     train_dataset = PetNoseDataset(images_dir, train_labels, transform=basic_transform)
     test_dataset = PetNoseDataset(images_dir, test_labels, transform=basic_transform)
     
@@ -259,6 +262,14 @@ if __name__ == "__main__":
     reality_check_dataset(train_dataset, num_samples=3)
     
     # Test augmentation transforms
-    print("\n=== Testing Augmentation Transforms ===")
-    aug_transform = get_transforms(augmentation=True)
+    print("\n=== Testing Augmentation Transforms (Color) ===")
+    aug_transform = get_transforms(color_aug=True, blur_aug=False)
     train_dataset_aug = PetNoseDataset(images_dir, train_labels, transform=aug_transform)
+    reality_check_dataset(train_dataset_aug, save_path="reality_check_samples_aug_color.png", num_samples=3)
+
+    
+    print("\n=== Testing Augmentation Transforms (Color + Blur) ===")
+    aug_transform_both = get_transforms(color_aug=True, blur_aug=True)
+    train_dataset_aug_both = PetNoseDataset(images_dir, train_labels, transform=aug_transform_both)
+    reality_check_dataset(train_dataset_aug_both, save_path="reality_check_samples_aug_color_blur.png", num_samples=3)
+

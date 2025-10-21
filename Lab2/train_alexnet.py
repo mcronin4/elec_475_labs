@@ -127,8 +127,8 @@ def plot_losses(train_losses, test_losses, save_path="loss_plots/training_loss_a
     plt.close()
 
 
-def train_alexnet(num_epochs=50, batch_size=32, learning_rate=0.001, 
-                   augmentation=False,
+def train_alexnet(num_epochs=50, batch_size=32, learning_rate=0.0001, 
+                   color_aug=False, blur_aug=False,
                    save_model_path="alexnet.pth", save_plot_path="loss_plots/training_loss_alexnet.png"):
     """
     Main training function for AlexNet.
@@ -137,7 +137,8 @@ def train_alexnet(num_epochs=50, batch_size=32, learning_rate=0.001,
         num_epochs: Number of training epochs
         batch_size: Batch size for training
         learning_rate: Learning rate for optimizer
-        augmentation: Whether to use data augmentation
+        color_aug: Whether to use color augmentation (ColorJitter)
+        blur_aug: Whether to use blur augmentation (GaussianBlur)
         save_model_path: Path to save trained model
         save_plot_path: Path to save loss plot
     """
@@ -167,10 +168,18 @@ def train_alexnet(num_epochs=50, batch_size=32, learning_rate=0.001,
     print("-" * 60)
     
     # Get transforms
-    train_transform = get_transforms(resize_size=227, augmentation=augmentation)
-    test_transform = get_transforms(resize_size=227, augmentation=False) # no augmentation for test set
-    if augmentation:
-        print("Using data augmentation: ColorJitter, RandomRotation, RandomHorizontalFlip")
+    train_transform = get_transforms(resize_size=227, color_aug=color_aug, blur_aug=blur_aug)
+    test_transform = get_transforms(resize_size=227, color_aug=False, blur_aug=False)  # no augmentation for test set
+    
+    # Print augmentation info
+    aug_types = []
+    if color_aug:
+        aug_types.append("ColorJitter")
+    if blur_aug:
+        aug_types.append("GaussianBlur")
+    
+    if aug_types:
+        print(f"Using data augmentation: {', '.join(aug_types)}")
     else:
         print("Using basic transforms (no augmentation)")
     
@@ -268,19 +277,28 @@ def train_alexnet(num_epochs=50, batch_size=32, learning_rate=0.001,
 def main():
     """Main function to handle command line arguments and start training."""
     parser = argparse.ArgumentParser(description='Train AlexNet model for pet nose localization')
-    parser.add_argument('-a', '--augment', action='store_true',
-                       help='Enable data augmentation (ColorJitter, RandomRotation, RandomHorizontalFlip)')
+    parser.add_argument('--color-aug', action='store_true',
+                       help='Enable color augmentation (ColorJitter: brightness, contrast, saturation, hue)')
+    parser.add_argument('--blur-aug', action='store_true',
+                       help='Enable blur augmentation (GaussianBlur)')
     parser.add_argument('-e', '--epochs', type=int, default=50,
                        help='Number of training epochs (default: 50)')
     parser.add_argument('-b', '--batch-size', type=int, default=32,
                        help='Batch size for training (default: 32)')
-    parser.add_argument('--lr', type=float, default=0.001,
-                       help='Learning rate (default: 0.001)')
+    parser.add_argument('--lr', type=float, default=0.0001,
+                       help='Learning rate (default: 0.0001)')
     
     args = parser.parse_args()
     
-    # Set filenames based on augmentation flag
-    suffix = "_aug" if args.augment else ""
+    # Set filenames based on augmentation flags
+    suffix = ""
+    if args.color_aug and args.blur_aug:
+        suffix = "_aug_both"
+    elif args.color_aug:
+        suffix = "_aug_color"
+    elif args.blur_aug:
+        suffix = "_aug_blur"
+    
     model_path = f"alexnet{suffix}.pth"
     best_model_path = f"best_alexnet{suffix}.pth"
     plot_path = f"loss_plots/training_loss_alexnet{suffix}.png"
@@ -289,7 +307,12 @@ def main():
     print("Training Configuration:")
     print("=" * 60)
     print(f"Model: AlexNet (pretrained on ImageNet)")
-    print(f"Augmentation: {'Enabled' if args.augment else 'Disabled'}")
+    aug_info = []
+    if args.color_aug:
+        aug_info.append("Color")
+    if args.blur_aug:
+        aug_info.append("Blur")
+    print(f"Augmentation: {', '.join(aug_info) if aug_info else 'Disabled'}")
     print(f"Epochs: {args.epochs}")
     print(f"Batch size: {args.batch_size}")
     print(f"Learning rate: {args.lr}")
@@ -303,7 +326,8 @@ def main():
         num_epochs=args.epochs,
         batch_size=args.batch_size,
         learning_rate=args.lr,
-        augmentation=args.augment,
+        color_aug=args.color_aug,
+        blur_aug=args.blur_aug,
         save_model_path=model_path,
         save_plot_path=plot_path
     )
