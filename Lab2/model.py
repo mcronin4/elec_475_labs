@@ -15,15 +15,15 @@ class SnoutNet(nn.Module):
         
         # Conv1 block: 3x3 conv, 3->64 channels, ReLU + MaxPool
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=64, kernel_size=3, padding=1)
-        self.pool1 = nn.MaxPool2d(kernel_size=3, stride=4)  # 227x227 -> 57x57
+        self.pool1 = nn.MaxPool2d(kernel_size=4, stride=4, padding=2)  # 227x227 -> 57x57
         
         # Conv2 block: 3x3 conv, 64->128 channels, ReLU + MaxPool
         self.conv2 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, padding=1)
-        self.pool2 = nn.MaxPool2d(kernel_size=3, stride=4, padding=1)  # 57x57 -> 15x15
+        self.pool2 = nn.MaxPool2d(kernel_size=4, stride=4, padding=2)  # 57x57 -> 15x15
         
         # Conv3 block: 3x3 conv, 128->256 channels, ReLU + MaxPool
         self.conv3 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, padding=1)
-        self.pool3 = nn.MaxPool2d(kernel_size=3, stride=4)  # 15x15 -> 4x4
+        self.pool3 = nn.MaxPool2d(kernel_size=4, stride=4, padding=1)  # 15x15 -> 4x4
         
         # Fully connected layers
         self.fc1 = nn.Linear(4 * 4 * 256, 1024)  # 4096 -> 1024
