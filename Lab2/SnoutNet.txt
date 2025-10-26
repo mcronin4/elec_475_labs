@@ -1,0 +1,4 @@
+Train without Augmentations: python train.py
+Train with both Augmentations: python train.py -a
+Test: python evaluate.py -m best_snoutnet{_aug_both}.pth
+Visualize: Same as above, visual will be saved to evaluation_samples/evaluation_samples_snoutnet{_aug}.png, where the _aug is added if testing the model trained with augmentation

@@ -1,0 +1,2 @@
+Test: python evaluate_ensemble.py {--suffix "_aug_both"}, where you only include the "--suffix" argument if evaluating the models trained with data augmentation 
+Visualize: Same as above, visual will be saved to evaluation_samples/evaluation_samples_ensemble{_aug}.png, where the _aug is added if evaluating the models trained with data augmentation

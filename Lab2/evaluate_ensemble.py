@@ -288,7 +288,7 @@ def main():
     vgg16_path = f"model_weights/vgg16/best_vgg16{args.suffix}.pth"
     
     # Output path
-    suffix_name = args.suffix if args.suffix else "_no_aug"
+    suffix_name = "_aug" if "aug" in args.suffix else ""
     output_path = f"evaluation_samples/evaluation_samples_ensemble{suffix_name}.png"
     
     print("\n" + "=" * 60)

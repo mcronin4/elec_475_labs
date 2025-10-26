@@ -1,0 +1,4 @@
+Train without Augmentations: python train_alexnet.py
+Train with both Augmentations: python train_alexnet.py -a
+Test: python evaluate.py -m best_alexnet{_aug_both}.pth, where the "_aug_both" is included if evaluating the model trained with data augmentation
+Visualize: Same as above, visual will be saved to evaluation_samples/evaluation_samples_alexnet{_aug}.png, where the _aug is added if evaluating the model trained with data augmentation
