@@ -165,10 +165,9 @@ def evaluate_ensemble(snoutnet_path, alexnet_path, vgg16_path,
         print("Creating Visualizations...")
         print("-" * 60)
         
-        # Visualize best, worst, and average predictions
+        # Visualize best and worst predictions
         visualize_predictions(test_dataset, all_predictions.numpy(), 
                             all_ground_truth.numpy(), distances_np,
-                            mean_distance,
                             save_path=save_path)
     
     print("\n" + "=" * 60)
@@ -178,23 +177,22 @@ def evaluate_ensemble(snoutnet_path, alexnet_path, vgg16_path,
     return results
 
 
-def visualize_predictions(dataset, predictions, ground_truth, distances, mean_distance,
-                         num_samples=9, save_path="evaluation_samples/evaluation_samples_ensemble.png"):
+def visualize_predictions(dataset, predictions, ground_truth, distances,
+                         num_samples=6, save_path="evaluation_samples/evaluation_samples_ensemble.png"):
     """
-    Visualize sample predictions with best, worst, and average cases.
+    Visualize sample predictions with best and worst cases.
     
     Args:
         dataset: PetNoseDataset
         predictions: Array of predicted coordinates
         ground_truth: Array of ground truth coordinates
         distances: Array of Euclidean distances
-        mean_distance: Mean distance value
-        num_samples: Number of samples to show (will show 3 each of best, worst, average)
+        num_samples: Number of samples to show (will show 3 each of best and worst)
         save_path: Path to save the visualization
     """
-    # Find best, worst, and most average predictions
+    # Find best and worst predictions
     sorted_indices = np.argsort(distances)
-    num_per_category = num_samples // 3
+    num_per_category = num_samples // 2
     
     # Best predictions (smallest distances)
     best_indices = sorted_indices[:num_per_category]
@@ -202,15 +200,11 @@ def visualize_predictions(dataset, predictions, ground_truth, distances, mean_di
     # Worst predictions (largest distances)
     worst_indices = sorted_indices[-num_per_category:]
     
-    # Most average predictions (closest to mean distance)
-    distance_from_mean = np.abs(distances - mean_distance)
-    average_indices = np.argsort(distance_from_mean)[:num_per_category]
+    # Combine indices in order: best, worst
+    sample_indices = np.concatenate([best_indices, worst_indices])
     
-    # Combine indices in order: best, average, worst
-    sample_indices = np.concatenate([best_indices, average_indices, worst_indices])
-    
-    # Create figure with 3 rows
-    fig, axes = plt.subplots(3, num_per_category, figsize=(15, 9))
+    # Create figure with 2 rows
+    fig, axes = plt.subplots(2, num_per_category, figsize=(15, 6))
     axes = axes.flatten()
     
     for i, idx in enumerate(sample_indices):
@@ -255,15 +249,13 @@ def visualize_predictions(dataset, predictions, ground_truth, distances, mean_di
             axes[i].legend(loc='upper right', fontsize=6)
     
     # Add overall title and row labels
-    fig.suptitle(f'Ensemble Model: Best {num_per_category}, Average {num_per_category}, and Worst {num_per_category} Predictions', 
+    fig.suptitle(f'Ensemble Model: Best {num_per_category} and Worst {num_per_category} Predictions', 
                 fontsize=14, fontweight='bold', y=0.99)
     
     # Add text labels for each row
-    fig.text(0.02, 0.83, 'Best', fontsize=12, fontweight='bold', rotation=90, 
+    fig.text(0.02, 0.75, 'Best', fontsize=12, fontweight='bold', rotation=90, 
              verticalalignment='center')
-    fig.text(0.02, 0.50, 'Average', fontsize=12, fontweight='bold', rotation=90, 
-             verticalalignment='center')
-    fig.text(0.02, 0.17, 'Worst', fontsize=12, fontweight='bold', rotation=90, 
+    fig.text(0.02, 0.25, 'Worst', fontsize=12, fontweight='bold', rotation=90, 
              verticalalignment='center')
     
     plt.tight_layout(rect=[0.03, 0, 1, 0.98])
