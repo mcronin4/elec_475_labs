@@ -17,7 +17,7 @@ import argparse
 import os
 
 from dataset import load_voc_dataset, decode_segmentation_mask, VOC_CLASSES
-from metrics import compute_miou
+from metrics import compute_miou, compute_iou
 
 
 def load_fcn_resnet50(pretrained=True, device='cpu'):
@@ -79,7 +79,8 @@ def evaluate_model(model, dataset, device='cpu', batch_size=4, num_samples=None,
     data_loader = DataLoader(dataset, batch_size=1, shuffle=False, 
                             num_workers=2, pin_memory=True)
     
-    # Storage for predictions and ground truth
+    # Storage for per-image predictions and ground truth
+    # Note: We can't concatenate because images have variable sizes
     all_predictions = []
     all_ground_truth = []
     
@@ -105,35 +106,65 @@ def evaluate_model(model, dataset, device='cpu', batch_size=4, num_samples=None,
             # Get predictions by taking argmax over classes
             preds = torch.argmax(logits, dim=1)  # [B, H, W]
             
-            # Store results (move to CPU)
-            all_predictions.append(preds.cpu())
-            all_ground_truth.append(masks.cpu())
+            # Remove batch dimension and store (move to CPU)
+            # Since batch_size=1, we can safely squeeze or index
+            pred_single = preds[0].cpu()  # [H, W]
+            mask_single = masks[0].cpu()  # [H, W]
+            
+            all_predictions.append(pred_single)
+            all_ground_truth.append(mask_single)
             
             # Save samples for visualization (first 6)
             if visualize and len(sample_images) < 6:
                 sample_images.append(images[0].cpu())
-                sample_preds.append(preds[0].cpu())
-                sample_gts.append(masks[0].cpu())
+                sample_preds.append(pred_single)
+                sample_gts.append(mask_single)
     
-    # Concatenate all predictions and ground truth
-    all_predictions = torch.cat(all_predictions, dim=0)  # [N, H, W]
-    all_ground_truth = torch.cat(all_ground_truth, dim=0)  # [N, H, W]
-    
-    print(f"\nPredictions shape: {all_predictions.shape}")
-    print(f"Ground truth shape: {all_ground_truth.shape}")
+    # Note: We can't concatenate predictions because VOC images have variable sizes
+    print(f"\nNumber of samples: {len(all_predictions)}")
+    if len(all_predictions) > 0:
+        print(f"Sample prediction shape: {all_predictions[0].shape}")
+        print(f"Sample ground truth shape: {all_ground_truth[0].shape}")
     
     # Compute mIoU
     print("\n" + "-" * 60)
     print("Computing mIoU...")
     print("-" * 60)
     
-    results = compute_miou(
-        all_predictions, 
-        all_ground_truth, 
-        num_classes=21, 
-        ignore_index=255,
-        return_per_class=True
-    )
+    # Process each image individually and accumulate IoU
+    # This handles variable image sizes correctly
+    iou_accumulator = np.zeros(21)
+    class_counts = np.zeros(21, dtype=int)
+    
+    for pred_mask, true_mask in zip(all_predictions, all_ground_truth):
+        iou_per_class, valid_classes = compute_iou(
+            pred_mask, true_mask, num_classes=21, ignore_index=255
+        )
+        for class_idx in range(21):
+            if valid_classes[class_idx]:
+                iou_accumulator[class_idx] += iou_per_class[class_idx]
+                class_counts[class_idx] += 1
+    
+    # Compute mean IoU for each class
+    iou_per_class_mean = np.zeros(21)
+    for class_idx in range(21):
+        if class_counts[class_idx] > 0:
+            iou_per_class_mean[class_idx] = iou_accumulator[class_idx] / class_counts[class_idx]
+        else:
+            iou_per_class_mean[class_idx] = np.nan
+    
+    # Compute overall mIoU
+    valid_class_ious = iou_per_class_mean[~np.isnan(iou_per_class_mean)]
+    if len(valid_class_ious) > 0:
+        miou = np.mean(valid_class_ious)
+    else:
+        miou = 0.0
+    
+    results = {
+        'miou': miou,
+        'iou_per_class': iou_per_class_mean,
+        'class_counts': class_counts
+    }
     
     # Print results
     print("\n" + "=" * 60)

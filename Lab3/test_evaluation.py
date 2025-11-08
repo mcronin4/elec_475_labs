@@ -118,6 +118,10 @@ def test_model_inference():
         preds = torch.argmax(logits, dim=1)
         print(f"Predictions shape after argmax: {preds.shape}")
         
+        # Remove batch dimension for comparison with single mask
+        preds = preds.squeeze(0)  # [H, W]
+        print(f"Predictions shape after squeeze: {preds.shape}")
+        
         assert preds.shape == mask.shape, \
             f"Prediction shape {preds.shape} doesn't match mask shape {mask.shape}"
         print("✓ Prediction shape matches mask shape")
