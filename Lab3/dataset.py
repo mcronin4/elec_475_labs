@@ -81,18 +81,20 @@ class VOCSegmentationDataset(Dataset):
         'test': 'VOC2012_test',
     }
     
-    def __init__(self, root='./data', image_set='val', transform=None, target_transform=None):
+    def __init__(self, root='./data', image_set='val', transform=None, target_transform=None, use_albumentations=False):
         """
         Initialize PASCAL VOC segmentation dataset.
         
         Args:
             root (str): Root directory for dataset (containing VOC2012_* folders)
             image_set (str): 'train', 'val', 'trainval', or 'test'
-            transform (callable): Transform for images
-            target_transform (callable): Transform for segmentation masks
+            transform (callable): Transform for images (torchvision or albumentations)
+            target_transform (callable): Transform for segmentation masks (only used if not using albumentations)
+            use_albumentations (bool): Whether to use Albumentations transforms
         """
         self.root = Path(root).expanduser()
         self.image_set = image_set.lower()
+        self.use_albumentations = use_albumentations
         
         if self.image_set not in self._SPLIT_DIRECTORY_MAP:
             valid_sets = ', '.join(sorted(self._SPLIT_DIRECTORY_MAP.keys()))
@@ -184,11 +186,33 @@ class VOCSegmentationDataset(Dataset):
         image = Image.open(image_path).convert('RGB')
         mask = Image.open(mask_path)
         
-        if self.transform is not None:
-            image = self.transform(image)
-        
-        if self.target_transform is not None:
-            mask = self.target_transform(mask)
+        if self.use_albumentations:
+            # Convert PIL images to numpy arrays for Albumentations
+            image_np = np.array(image)
+            mask_np = np.array(mask, dtype=np.int64)
+            
+            # Apply Albumentations transform (handles both image and mask)
+            if self.transform is not None:
+                augmented = self.transform(image=image_np, mask=mask_np)
+                image = augmented['image']
+                mask = augmented['mask']
+                
+                # Ensure mask is Long (int64) - Albumentations may return int32
+                if not isinstance(mask, torch.Tensor):
+                    mask = torch.from_numpy(mask).long()
+                else:
+                    mask = mask.long()
+            else:
+                # Convert to tensors manually if no transform provided
+                image = torch.from_numpy(image_np).permute(2, 0, 1).float() / 255.0
+                mask = torch.from_numpy(mask_np).long()
+        else:
+            # Use torchvision transforms (original behavior)
+            if self.transform is not None:
+                image = self.transform(image)
+            
+            if self.target_transform is not None:
+                mask = self.target_transform(mask)
         
         return image, mask
     
