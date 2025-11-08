@@ -80,7 +80,7 @@ def test_model_inference():
         
         # Load a sample from dataset
         print("Loading sample from dataset...")
-        dataset = load_voc_dataset(root='./data', image_set='val', download=True)
+        dataset = load_voc_dataset(root='./data', image_set='val')
         image, mask = dataset[0]
         
         print(f"Sample image shape: {image.shape}")
@@ -163,7 +163,7 @@ def test_evaluation_on_subset():
         
         # Load dataset
         print("Loading dataset...")
-        dataset = load_voc_dataset(root='./data', image_set='val', download=True)
+        dataset = load_voc_dataset(root='./data', image_set='val')
         
         # Evaluate on small subset
         num_samples = 5

@@ -233,6 +233,9 @@ def main():
                        help='Directory to save results (default: evaluation_results)')
     parser.add_argument('--data-root', type=str, default='./data',
                        help='Root directory for dataset (default: ./data)')
+    parser.add_argument('--image-set', type=str, default='val',
+                       choices=['train', 'val', 'trainval', 'test'],
+                       help='Dataset split to evaluate (test split lacks masks)')
     
     args = parser.parse_args()
     
@@ -242,6 +245,7 @@ def main():
     print("=" * 60)
     print(f"Dataset: PASCAL VOC 2012")
     print(f"Data root: {args.data_root}")
+    print(f"Image set: {args.image_set}")
     print(f"Num samples: {args.num_samples if args.num_samples else 'All'}")
     print(f"Batch size: {args.batch_size} (forced to 1 for variable-size images)")
     print(f"Visualize: {args.visualize}")
@@ -262,7 +266,13 @@ def main():
     print("\n" + "-" * 60)
     print("Loading Dataset")
     print("-" * 60)
-    dataset = load_voc_dataset(root=args.data_root, image_set='val', download=True)
+    if args.image_set == 'test':
+        raise ValueError(
+            "The PASCAL VOC 2012 test split does not include ground-truth segmentation masks.\n"
+            "Choose from --image-set train, val, or trainval."
+        )
+    
+    dataset = load_voc_dataset(root=args.data_root, image_set=args.image_set)
     
     # Load model
     print("\n" + "-" * 60)

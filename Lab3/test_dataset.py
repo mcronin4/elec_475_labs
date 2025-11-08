@@ -19,7 +19,7 @@ def test_dataset_loading():
     print("=" * 60)
     
     try:
-        dataset = load_voc_dataset(root='./data', image_set='val', download=True)
+        dataset = load_voc_dataset(root='./data', image_set='val')
         
         # Check dataset size
         assert len(dataset) > 0, "Dataset is empty"
@@ -57,7 +57,7 @@ def test_tensor_shapes():
     print("=" * 60)
     
     try:
-        dataset = load_voc_dataset(root='./data', image_set='val', download=True)
+        dataset = load_voc_dataset(root='./data', image_set='val')
         
         # Load first sample
         image, mask = dataset[0]
@@ -101,7 +101,7 @@ def test_data_types():
     print("=" * 60)
     
     try:
-        dataset = load_voc_dataset(root='./data', image_set='val', download=True)
+        dataset = load_voc_dataset(root='./data', image_set='val')
         image, mask = dataset[0]
         
         # Check image dtype (should be float32)
@@ -128,7 +128,7 @@ def test_value_ranges():
     print("=" * 60)
     
     try:
-        dataset = load_voc_dataset(root='./data', image_set='val', download=True)
+        dataset = load_voc_dataset(root='./data', image_set='val')
         
         print("Checking image normalization...")
         image, mask = dataset[0]
@@ -190,7 +190,7 @@ def test_transforms():
         print(f"  Target transform: {target_transform}")
         
         # Load dataset and verify transforms were applied
-        dataset = load_voc_dataset(root='./data', image_set='val', download=True)
+        dataset = load_voc_dataset(root='./data', image_set='val')
         image, mask = dataset[0]
         
         # Verify image is a tensor (ToTensor was applied)
@@ -228,7 +228,7 @@ def test_subset_functionality():
     print("=" * 60)
     
     try:
-        dataset = load_voc_dataset(root='./data', image_set='val', download=True)
+        dataset = load_voc_dataset(root='./data', image_set='val')
         original_size = len(dataset)
         
         # Test creating a subset
@@ -272,7 +272,7 @@ def test_class_distribution():
     print("=" * 60)
     
     try:
-        dataset = load_voc_dataset(root='./data', image_set='val', download=True)
+        dataset = load_voc_dataset(root='./data', image_set='val')
         
         # Count class occurrences in first N samples
         num_samples_to_check = min(50, len(dataset))
