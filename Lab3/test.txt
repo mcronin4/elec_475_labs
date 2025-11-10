@@ -1,0 +1,2 @@
+python evaluate_custom_model.py --checkpoint ./training_output/checkpoints/best_checkpoint.pth --input-size 320 --batch-size 16 --visualize --output-dir ./evaluation_results
+

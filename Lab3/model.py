@@ -110,15 +110,17 @@ class CompactSegmentationModel(nn.Module):
                     nn.init.constant_(m.weight, 1)
                     nn.init.constant_(m.bias, 0)
     
-    def forward(self, x):
+    def forward(self, x, return_features=False):
         """
         Forward pass.
         
         Args:
             x: [B, 3, H, W] input images
+            return_features (bool): If True, return intermediate features for distillation
             
         Returns:
-            [B, 21, H, W] class logits (same spatial size as input)
+            If return_features=False: [B, 21, H, W] class logits
+            If return_features=True: dict with 'logits' and 'features' (stride4, stride8, stride16)
         """
         input_size = x.shape[-2:]
         
@@ -166,9 +168,20 @@ class CompactSegmentationModel(nn.Module):
         x = self.classifier(x)              # [B, 21, H/4, W/4]
         
         # Upsample to input size
-        x = F.interpolate(x, size=input_size, mode='bilinear', align_corners=False)
+        logits = F.interpolate(x, size=input_size, mode='bilinear', align_corners=False)
         
-        return x  # [B, 21, H, W]
+        # Return features if requested (for feature-based distillation)
+        if return_features:
+            return {
+                'logits': logits,  # [B, 21, H, W]
+                'features': {
+                    'stride4': features['stride4'],   # [B, 24, H/4, W/4]
+                    'stride8': features['stride8'],   # [B, 40, H/8, W/8]
+                    'stride16': features['stride16']  # [B, 48, H/16, W/16]
+                }
+            }
+        
+        return logits  # [B, 21, H, W]
 
 
 class LightweightASPP(nn.Module):
@@ -286,4 +299,5 @@ if __name__ == "__main__":
     print("\n" + "=" * 80)
     print("Model test complete!")
     print("=" * 80)
+
 

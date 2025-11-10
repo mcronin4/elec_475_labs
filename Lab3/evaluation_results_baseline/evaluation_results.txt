@@ -1,0 +1,36 @@
+================================================================================
+EVALUATION RESULTS
+================================================================================
+
+Checkpoint: ./training_output_baseline/checkpoints/best_checkpoint.pth
+Dataset: PASCAL VOC 2012 val
+Number of samples: 1449
+Model parameters: 1,285,253
+
+Class                       IoU      Count
+------------------------------------------
+background               0.7427       1443
+aeroplane                0.4633         90
+bicycle                  0.1747         79
+bird                     0.3600        103
+boat                     0.3299         72
+bottle                   0.1927         96
+bus                      0.5950         74
+car                      0.3120        127
+cat                      0.4312        119
+chair                    0.1155        123
+cow                      0.4598         71
+diningtable              0.3548         75
+dog                      0.3423        128
+horse                    0.3498         79
+motorbike                0.5044         76
+person                   0.3481        446
+pottedplant              0.2140         85
+sheep                    0.3752         57
+sofa                     0.2671         90
+train                    0.5804         84
+tvmonitor                0.3294         74
+------------------------------------------
+
+Overall mIoU:            0.3734
+================================================================================

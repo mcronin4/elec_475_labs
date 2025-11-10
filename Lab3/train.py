@@ -26,27 +26,39 @@ from utils import (
     visualize_segmentation
 )
 from dataset import VOC_CLASSES, VOC_COLORMAP
+import torchvision.models.segmentation as segmentation_models
+from distillation_losses import ResponseBasedDistillationLoss, FeatureBasedDistillationLoss
+from teacher_features import load_fcn_resnet50_with_features, extract_teacher_features
 
 
-def train_epoch(model, dataloader, criterion, optimizer, device, scaler=None, epoch=0):
+def train_epoch(model, dataloader, criterion, optimizer, device, scaler=None, epoch=0, 
+                teacher_model=None, use_distillation=False, distillation_mode='response'):
     """
     Train for one epoch.
     
     Args:
-        model: Segmentation model
+        model: Segmentation model (student)
         dataloader: Training dataloader
         criterion: Loss function
         optimizer: Optimizer
         device: Device to train on
         scaler: GradScaler for mixed precision (optional)
         epoch: Current epoch number
+        teacher_model: Teacher model for distillation (optional)
+        use_distillation: Whether to use knowledge distillation
+        distillation_mode: 'response' or 'feature'
         
     Returns:
         float: Average training loss
     """
     model.train()
+    if teacher_model is not None:
+        teacher_model.eval()  # Ensure teacher is in eval mode
     
     loss_meter = AverageMeter('Loss')
+    if use_distillation:
+        task_loss_meter = AverageMeter('Task Loss')
+        distill_loss_meter = AverageMeter('Distill Loss')
     
     pbar = tqdm(dataloader, desc=f'Epoch {epoch+1} [Train]')
     for images, masks in pbar:
@@ -58,43 +70,115 @@ def train_epoch(model, dataloader, criterion, optimizer, device, scaler=None, ep
         # Mixed precision training
         if scaler is not None:
             with autocast():
-                outputs = model(images)
-                loss = criterion(outputs, masks)
+                if use_distillation and distillation_mode == 'feature' and teacher_model is not None:
+                    # Feature-based distillation: get features from both models
+                    student_output = model(images, return_features=True)
+                    student_logits = student_output['logits']
+                    student_features = student_output['features']
+                    
+                    # Teacher features (no gradients)
+                    with torch.no_grad():
+                        teacher_features = extract_teacher_features(teacher_model, images)
+                    
+                    # Compute feature-based distillation loss
+                    loss, loss_task, loss_distill = criterion(
+                        student_logits, student_features, teacher_features, masks
+                    )
+                elif use_distillation and distillation_mode == 'response' and teacher_model is not None:
+                    # Response-based distillation
+                    student_outputs = model(images)
+                    
+                    # Teacher forward pass (no gradients)
+                    with torch.no_grad():
+                        teacher_outputs_dict = teacher_model(images)
+                        teacher_outputs = teacher_outputs_dict['out']
+                    
+                    # Compute distillation loss
+                    loss, loss_task, loss_distill = criterion(student_outputs, teacher_outputs, masks)
+                else:
+                    # Standard task loss
+                    student_outputs = model(images)
+                    loss = criterion(student_outputs, masks)
+                    loss_task = loss
+                    loss_distill = torch.tensor(0.0)
             
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
         else:
-            outputs = model(images)
-            loss = criterion(outputs, masks)
+            if use_distillation and distillation_mode == 'feature' and teacher_model is not None:
+                # Feature-based distillation
+                student_output = model(images, return_features=True)
+                student_logits = student_output['logits']
+                student_features = student_output['features']
+                
+                # Teacher features (no gradients)
+                with torch.no_grad():
+                    teacher_features = extract_teacher_features(teacher_model, images)
+                
+                # Compute feature-based distillation loss
+                loss, loss_task, loss_distill = criterion(
+                    student_logits, student_features, teacher_features, masks
+                )
+            elif use_distillation and distillation_mode == 'response' and teacher_model is not None:
+                # Response-based distillation
+                student_outputs = model(images)
+                
+                # Teacher forward pass (no gradients)
+                with torch.no_grad():
+                    teacher_outputs_dict = teacher_model(images)
+                    teacher_outputs = teacher_outputs_dict['out']
+                
+                # Compute distillation loss
+                loss, loss_task, loss_distill = criterion(student_outputs, teacher_outputs, masks)
+            else:
+                # Standard task loss
+                student_outputs = model(images)
+                loss = criterion(student_outputs, masks)
+                loss_task = loss
+                loss_distill = torch.tensor(0.0)
+            
             loss.backward()
             optimizer.step()
         
         # Update metrics
         batch_size = images.size(0)
         loss_meter.update(loss.item(), batch_size)
-        
-        # Update progress bar
-        pbar.set_postfix({'loss': f'{loss_meter.avg:.4f}'})
+        if use_distillation:
+            task_loss_meter.update(loss_task.item(), batch_size)
+            distill_loss_meter.update(loss_distill.item(), batch_size)
+            pbar.set_postfix({
+                'loss': f'{loss_meter.avg:.4f}',
+                'task': f'{task_loss_meter.avg:.4f}',
+                'distill': f'{distill_loss_meter.avg:.4f}'
+            })
+        else:
+            pbar.set_postfix({'loss': f'{loss_meter.avg:.4f}'})
     
     return loss_meter.avg
 
 
-def validate_epoch(model, dataloader, criterion, device, epoch=0):
+def validate_epoch(model, dataloader, criterion, device, epoch=0, 
+                   teacher_model=None, use_distillation=False, distillation_mode='response'):
     """
     Validate for one epoch.
     
     Args:
-        model: Segmentation model
+        model: Segmentation model (student)
         dataloader: Validation dataloader
         criterion: Loss function
         device: Device to validate on
         epoch: Current epoch number
+        teacher_model: Teacher model for distillation (optional)
+        use_distillation: Whether to use knowledge distillation
+        distillation_mode: 'response' or 'feature'
         
     Returns:
         tuple: (avg_loss, miou, iou_per_class, class_counts)
     """
     model.eval()
+    if teacher_model is not None:
+        teacher_model.eval()
     
     loss_meter = AverageMeter('Val Loss')
     
@@ -109,8 +193,31 @@ def validate_epoch(model, dataloader, criterion, device, epoch=0):
             masks = masks.to(device)
             
             # Forward pass
-            outputs = model(images)
-            loss = criterion(outputs, masks)
+            if use_distillation and distillation_mode == 'feature' and teacher_model is not None:
+                # Feature-based distillation: get features from both models
+                student_output = model(images, return_features=True)
+                outputs = student_output['logits']
+                student_features = student_output['features']
+                
+                # Teacher features
+                teacher_features = extract_teacher_features(teacher_model, images)
+                
+                # Compute feature-based distillation loss
+                loss, _, _ = criterion(outputs, student_features, teacher_features, masks)
+            elif use_distillation and distillation_mode == 'response' and teacher_model is not None:
+                # Response-based distillation
+                outputs = model(images)
+                
+                # Teacher forward pass
+                teacher_outputs_dict = teacher_model(images)
+                teacher_outputs = teacher_outputs_dict['out']
+                
+                # Compute response-based distillation loss
+                loss, _, _ = criterion(outputs, teacher_outputs, masks)
+            else:
+                # Standard task loss
+                outputs = model(images)
+                loss = criterion(outputs, masks)
             
             # Update loss
             batch_size = images.size(0)
@@ -247,7 +354,48 @@ def train(args):
         print("Not using class weights")
     
     # Create loss function
-    criterion = nn.CrossEntropyLoss(weight=class_weights, ignore_index=255)
+    if args.use_distillation:
+        print("\n" + "-" * 80)
+        print("Setting up Knowledge Distillation")
+        print("-" * 80)
+        print(f"Distillation mode: {args.distillation_mode}")
+        
+        # Load teacher model (FCN-ResNet50)
+        print("\nLoading teacher model (FCN-ResNet50)...")
+        teacher_model = load_fcn_resnet50_with_features(pretrained=True, device=device)
+        
+        teacher_params = sum(p.numel() for p in teacher_model.parameters())
+        print(f"Teacher model loaded with {teacher_params:,} parameters (frozen)")
+        
+        # Create distillation loss
+        if args.distillation_mode == 'response':
+            print(f"Temperature: {args.temperature}")
+            print(f"Alpha (task weight): {args.alpha}")
+            print(f"Beta (distillation weight): {args.beta}")
+            criterion = ResponseBasedDistillationLoss(
+                temperature=args.temperature,
+                alpha=args.alpha,
+                beta=args.beta,
+                ignore_index=255,
+                reduction='mean',
+                class_weights=class_weights
+            )
+        elif args.distillation_mode == 'feature':
+            print(f"Alpha (task weight): {args.alpha}")
+            print(f"Gamma (feature weight): {args.gamma}")
+            criterion = FeatureBasedDistillationLoss(
+                alpha=args.alpha,
+                gamma=args.gamma,
+                ignore_index=255,
+                reduction='mean',
+                class_weights=class_weights,
+                feature_levels=['stride4', 'stride8', 'stride16']
+            )
+        else:
+            raise ValueError(f"Unknown distillation mode: {args.distillation_mode}")
+    else:
+        criterion = nn.CrossEntropyLoss(weight=class_weights, ignore_index=255)
+        teacher_model = None
     
     # Create optimizer
     optimizer = torch.optim.AdamW(
@@ -325,14 +473,20 @@ def train(args):
         # Train
         train_loss = train_epoch(
             model, train_loader, criterion, optimizer, device,
-            scaler=scaler, epoch=epoch
+            scaler=scaler, epoch=epoch,
+            teacher_model=teacher_model if args.use_distillation else None,
+            use_distillation=args.use_distillation,
+            distillation_mode=args.distillation_mode if args.use_distillation else 'response'
         )
         history['train_loss'].append(train_loss)
         
         # Validate
         if (epoch + 1) % args.val_every == 0:
             val_loss, val_miou, iou_per_class, class_counts = validate_epoch(
-                model, val_loader, criterion, device, epoch=epoch
+                model, val_loader, criterion, device, epoch=epoch,
+                teacher_model=teacher_model if args.use_distillation else None,
+                use_distillation=args.use_distillation,
+                distillation_mode=args.distillation_mode if args.use_distillation else 'response'
             )
             history['val_loss'].append(val_loss)
             history['val_miou'].append(val_miou)
@@ -388,7 +542,29 @@ def train(args):
             print(f"Val Loss: {val_loss:.4f}, Val mIoU: {val_miou:.4f}")
         print("-" * 80)
     
-    # Final checkpoint is already saved as checkpoint_latest.pth
+    # Save final checkpoint (in case last epoch wasn't a validation epoch)
+    # Only save if we have validation data, otherwise the checkpoint from last validation is fine
+    if len(history.get('val_loss', [])) > 0:
+        # Get the last validation metrics
+        last_val_loss = history['val_loss'][-1]
+        last_val_miou = history['val_miou'][-1]
+        
+        checkpoint = {
+            'epoch': epoch,  # Last completed epoch (0-indexed)
+            'model_state_dict': model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'scheduler_state_dict': scheduler.state_dict() if scheduler else None,
+            'train_loss': train_loss,
+            'val_loss': last_val_loss,
+            'val_miou': last_val_miou,
+            'best_miou': best_miou,
+            'history': history,
+            'args': vars(args)
+        }
+        
+        latest_path = checkpoint_dir / 'checkpoint_latest.pth'
+        save_checkpoint(checkpoint, latest_path, is_best=False)  # Don't overwrite best checkpoint
+    
     print("\nTraining checkpoints saved.")
     
     # Plot training history
@@ -454,6 +630,21 @@ def main():
                        help='Path to checkpoint to resume from')
     parser.add_argument('--output-dir', type=str, default='./training_output',
                        help='Output directory for checkpoints and logs')
+    
+    # Knowledge Distillation
+    parser.add_argument('--use-distillation', action='store_true', default=False,
+                       help='Use knowledge distillation with teacher model')
+    parser.add_argument('--distillation-mode', type=str, default='response',
+                       choices=['response', 'feature', 'both'],
+                       help='Distillation mode: response-based, feature-based, or both')
+    parser.add_argument('--temperature', type=float, default=4.0,
+                       help='Temperature for distillation softmax (default: 4.0)')
+    parser.add_argument('--alpha', type=float, default=1.0,
+                       help='Weight for task loss (default: 1.0)')
+    parser.add_argument('--beta', type=float, default=0.5,
+                       help='Weight for response distillation loss (default: 0.5)')
+    parser.add_argument('--gamma', type=float, default=0.1,
+                       help='Weight for feature distillation loss (default: 0.1, used for feature-based)')
     
     args = parser.parse_args()
     
