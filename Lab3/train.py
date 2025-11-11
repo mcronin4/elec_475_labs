@@ -163,22 +163,31 @@ def validate_epoch(model, dataloader, criterion, device, epoch=0,
     """
     Validate for one epoch.
     
+    Note: During validation, we only compute task loss (student vs ground truth).
+    The teacher model is NOT used during validation to save computation time.
+    
     Args:
         model: Segmentation model (student)
         dataloader: Validation dataloader
-        criterion: Loss function
+        criterion: Loss function (can be distillation loss or standard CrossEntropyLoss)
         device: Device to validate on
         epoch: Current epoch number
-        teacher_model: Teacher model for distillation (optional)
-        use_distillation: Whether to use knowledge distillation
-        distillation_mode: 'response' or 'feature'
+        teacher_model: Teacher model for distillation (optional, not used during validation)
+        use_distillation: Whether distillation is used during training (not used here)
+        distillation_mode: Distillation mode (not used here)
         
     Returns:
         tuple: (avg_loss, miou, iou_per_class, class_counts)
     """
     model.eval()
-    if teacher_model is not None:
-        teacher_model.eval()
+    
+    # Get task-only loss function for validation
+    # If criterion is a distillation loss, use its task_loss component
+    # Otherwise, use criterion directly (it's already CrossEntropyLoss)
+    if hasattr(criterion, 'task_loss'):
+        task_criterion = criterion.task_loss
+    else:
+        task_criterion = criterion
     
     loss_meter = AverageMeter('Val Loss')
     
@@ -192,32 +201,11 @@ def validate_epoch(model, dataloader, criterion, device, epoch=0,
             images = images.to(device)
             masks = masks.to(device)
             
-            # Forward pass
-            if use_distillation and distillation_mode == 'feature' and teacher_model is not None:
-                # Feature-based distillation: get features from both models
-                student_output = model(images, return_features=True)
-                outputs = student_output['logits']
-                student_features = student_output['features']
-                
-                # Teacher features
-                teacher_features = extract_teacher_features(teacher_model, images)
-                
-                # Compute feature-based distillation loss
-                loss, _, _ = criterion(outputs, student_features, teacher_features, masks)
-            elif use_distillation and distillation_mode == 'response' and teacher_model is not None:
-                # Response-based distillation
-                outputs = model(images)
-                
-                # Teacher forward pass
-                teacher_outputs_dict = teacher_model(images)
-                teacher_outputs = teacher_outputs_dict['out']
-                
-                # Compute response-based distillation loss
-                loss, _, _ = criterion(outputs, teacher_outputs, masks)
-            else:
-                # Standard task loss
-                outputs = model(images)
-                loss = criterion(outputs, masks)
+            # Forward pass - only student model, no teacher needed
+            outputs = model(images)
+            
+            # Compute task loss only (student vs ground truth)
+            loss = task_criterion(outputs, masks)
             
             # Update loss
             batch_size = images.size(0)
