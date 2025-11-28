@@ -2,5 +2,6 @@ __pycache__/
 venv/
 .DS_Store
 *.pth
+*.pt
 .venv/
 *data/

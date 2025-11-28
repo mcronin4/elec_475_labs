@@ -1,0 +1,63 @@
+============================================================
+CLIP FINE-TUNING TRAINING SUMMARY
+============================================================
+
+HARDWARE INFORMATION
+------------------------------------------------------------
+Device: cuda
+GPU: Tesla T4
+CUDA Version: 12.4
+GPU Memory: 15.83 GB
+
+DATASET INFORMATION
+------------------------------------------------------------
+Training samples: 400,000
+Validation samples: 80,000
+Batch size: 64
+Total batches per epoch: 6250
+
+MODEL ARCHITECTURE
+------------------------------------------------------------
+Architecture: ResNet50 (ImageNet pretrained) + Projection Head
+Projection: 2048 -> 1024 -> 512
+Activation: GELU
+Total parameters: 26,131,008
+Trainable parameters: 26,131,008
+Image input size: 224×224
+Embedding dimension: 512
+
+TRAINING CONFIGURATION
+------------------------------------------------------------
+Optimizer: AdamW
+Learning rate: 0.0001
+Weight decay: 0.01
+Temperature: 0.07
+Total epochs: 10
+LR Scheduler: CosineAnnealingLR
+
+TRAINING RESULTS
+------------------------------------------------------------
+Total training time: 464.79 minutes (7.75 hours)
+Average time per epoch: 46.48 minutes
+Total training iterations: 62,500
+
+Best validation loss: 0.6931 (epoch 9)
+Final training loss: 0.3493
+Final validation loss: 0.6957
+
+LOSS HISTORY (PER EPOCH)
+------------------------------------------------------------
+Epoch | Train Loss | Val Loss   | LR
+------------------------------------------------------------
+    1 |     0.8487 |     0.8199 | 9.76e-05
+    2 |     0.6407 |     0.7779 | 9.05e-05
+    3 |     0.5663 |     0.7634 | 7.96e-05
+    4 |     0.5167 |     0.7391 | 6.58e-05
+    5 |     0.4766 |     0.7235 | 5.05e-05
+    6 |     0.4413 |     0.7145 | 3.52e-05
+    7 |     0.4101 |     0.7025 | 2.14e-05
+    8 |     0.3832 |     0.6946 | 1.05e-05
+    9 |     0.3634 |     0.6931 | 3.42e-06
+   10 |     0.3493 |     0.6957 | 1.00e-06
+
+============================================================
