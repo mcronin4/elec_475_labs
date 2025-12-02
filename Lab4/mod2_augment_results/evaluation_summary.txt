@@ -1,0 +1,47 @@
+============================================================
+CLIP MODEL EVALUATION SUMMARY
+============================================================
+
+RECALL@K METRICS
+------------------------------------------------------------
+Image-to-Text Retrieval:
+  Recall@ 1:  19.26%
+  Recall@ 5:  44.94%
+  Recall@10:  58.60%
+
+Text-to-Image Retrieval:
+  Recall@ 1:  24.78%
+  Recall@ 5:  52.58%
+  Recall@10:  65.10%
+
+SIMILARITY STATISTICS
+------------------------------------------------------------
+Correct pairs (diagonal):
+  Mean: 0.4436
+  Std:  0.0955
+  Min:  0.0144
+  Max:  0.6847
+
+Incorrect pairs (off-diagonal):
+  Mean: 0.0352
+  Std:  0.0833
+  Min:  -0.3084
+  Max:  0.6732
+
+Separation margin: 0.4084
+
+EVALUATION DATASET
+------------------------------------------------------------
+Number of samples: 5000
+Dataset: COCO 2014 Validation
+Embedding dimension: 512
+
+MODEL INFORMATION
+------------------------------------------------------------
+Architecture: ResNet50 + Projection Head
+Projection: 2048 → 1024 → 512
+Total parameters: 26,131,008
+Trained for: 3 epochs
+Best validation loss: 0.6979
+
+============================================================
