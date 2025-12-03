@@ -1,0 +1,63 @@
+============================================================
+CLIP FINE-TUNING TRAINING SUMMARY - mod1_dropout
+============================================================
+
+HARDWARE INFORMATION
+------------------------------------------------------------
+Device: cuda
+GPU: Tesla P100-PCIE-16GB
+CUDA Version: 12.4
+GPU Memory: 17.06 GB
+
+DATASET INFORMATION
+------------------------------------------------------------
+Training samples: 400,000
+Validation samples: 80,000
+Batch size: 64
+Total batches per epoch: 6250
+
+MODEL ARCHITECTURE
+------------------------------------------------------------
+Architecture: ResNet50 (ImageNet pretrained) + Projection Head
+Projection: 2048 -> 1024 -> 512
+Activation: GELU
+Total parameters: 26,131,008
+Trainable parameters: 26,131,008
+Image input size: 224×224
+Embedding dimension: 512
+
+TRAINING CONFIGURATION
+------------------------------------------------------------
+Optimizer: AdamW
+Learning rate: 1e-05
+Weight decay: 0.01
+Temperature: 0.07
+Total epochs: 10
+LR Scheduler: CosineAnnealingLR
+
+TRAINING RESULTS
+------------------------------------------------------------
+Total training time: 398.09 minutes (6.63 hours)
+Average time per epoch: 39.81 minutes
+Total training iterations: 62,500
+
+Best validation loss: 1.3062 (epoch 5)
+Final training loss: 1.0451
+Final validation loss: 1.3112
+
+LOSS HISTORY (PER EPOCH)
+------------------------------------------------------------
+Epoch | Train Loss | Val Loss   | LR
+------------------------------------------------------------
+    1 |     1.1928 |     1.3167 | 9.78e-06
+    2 |     1.1566 |     1.3105 | 9.14e-06
+    3 |     1.1309 |     1.3092 | 8.15e-06
+    4 |     1.1088 |     1.3074 | 6.89e-06
+    5 |     1.0912 |     1.3062 | 5.50e-06
+    6 |     1.0782 |     1.3066 | 4.11e-06
+    7 |     1.0659 |     1.3073 | 2.85e-06
+    8 |     1.0562 |     1.3085 | 1.86e-06
+    9 |     1.0505 |     1.3106 | 1.22e-06
+   10 |     1.0451 |     1.3112 | 1.00e-06
+
+============================================================

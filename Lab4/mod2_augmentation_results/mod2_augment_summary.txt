@@ -1,0 +1,57 @@
+============================================================
+CLIP FINE-TUNING TRAINING SUMMARY - mod2_augment
+============================================================
+
+HARDWARE INFORMATION
+------------------------------------------------------------
+Device: cuda
+GPU: Tesla T4
+CUDA Version: 12.4
+GPU Memory: 15.83 GB
+
+DATASET INFORMATION
+------------------------------------------------------------
+Training samples: 400,000
+Validation samples: 80,000
+Batch size: 64
+Total batches per epoch: 6250
+
+MODEL ARCHITECTURE
+------------------------------------------------------------
+Architecture: ResNet50 (ImageNet pretrained) + Projection Head
+Projection: 2048 -> 1024 -> 512
+Activation: GELU
+Total parameters: 26,131,008
+Trainable parameters: 26,131,008
+Image input size: 224×224
+Embedding dimension: 512
+
+TRAINING CONFIGURATION
+------------------------------------------------------------
+Optimizer: AdamW
+Learning rate: 1e-05
+Weight decay: 0.01
+Temperature: 0.07
+Total epochs: 4
+LR Scheduler: CosineAnnealingLR
+
+TRAINING RESULTS
+------------------------------------------------------------
+Total training time: 250.41 minutes (4.17 hours)
+Average time per epoch: 62.60 minutes
+Total training iterations: 25,000
+
+Best validation loss: 0.6979 (epoch 3)
+Final training loss: 0.3910
+Final validation loss: 0.6995
+
+LOSS HISTORY (PER EPOCH)
+------------------------------------------------------------
+Epoch | Train Loss | Val Loss   | LR
+------------------------------------------------------------
+    1 |     0.4213 |     0.6997 | 8.68e-06
+    2 |     0.4077 |     0.7041 | 5.50e-06
+    3 |     0.3978 |     0.6979 | 2.32e-06
+    4 |     0.3910 |     0.6995 | 1.00e-06
+
+============================================================
