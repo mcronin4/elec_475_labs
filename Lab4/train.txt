@@ -1,0 +1,16 @@
+# Option 1: Run training notebook from command line using jupyter nbconvert
+jupyter nbconvert --to notebook --execute kaggle_version.ipynb --output kaggle_version_executed.ipynb
+
+# Option 2: Run training notebook using papermill (allows parameter injection)
+# pip install papermill
+# papermill kaggle_version.ipynb kaggle_version_output.ipynb
+
+# Option 3: Run interactively in Jupyter
+# jupyter notebook kaggle_version.ipynb
+
+# Configuration (modify EXPERIMENT_CONFIG in Cell 3 of kaggle_version.ipynb):
+# - 'baseline': Original configuration
+# - 'mod1_dropout': Dropout + Label Smoothing
+# - 'mod2_augment': Strong data augmentation
+# - 'mod3_combined': All modifications combined
+

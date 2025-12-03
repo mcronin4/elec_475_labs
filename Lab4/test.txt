@@ -1,0 +1,10 @@
+# Option 1: Run evaluation notebook from command line using jupyter nbconvert
+jupyter nbconvert --to notebook --execute evaluation.ipynb --output evaluation_executed.ipynb
+
+# Option 2: Run evaluation notebook using papermill
+# pip install papermill
+# papermill evaluation.ipynb evaluation_output.ipynb
+
+# Option 3: Run interactively in Jupyter
+# jupyter notebook evaluation.ipynb
+
